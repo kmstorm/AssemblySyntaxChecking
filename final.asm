@@ -6,12 +6,13 @@
 
 .data
 	#Instruction, include opcode and maximum 3 operand
+	address:.space	16
 	input: 	.space 	100
-	opcode: .space 	10
+	opcode: .space 	12
 	opr1:	.space	32
 	opr2:	.space	32
 	opr3:	.space	32
-	
+	#address:.space	10
 	#Instruction Pattern
 	#r=register, i=immediate, f=float register, l=label, s=special address, x: nothing
 	type: .asciiz "x", "r", "i", "f", "l", "s"
@@ -265,7 +266,6 @@ opr1_find:
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr2_pre
 	#if \n or null: goto progcess
-	lb	$t1, 0($t6)
     	beqz	$t0, progcess
     	lb	$t1, 0($t7)
     	beq	$t0, $t1, progcess
@@ -298,7 +298,6 @@ opr2_find:
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr3_pre
 	#if \n or null: goto progcess
-	lb	$t1, 0($t6)
     	beqz	$t0, progcess
     	lb	$t1, 0($t7)
     	beq	$t0, $t1, progcess
@@ -324,7 +323,6 @@ opr3_find:
 	addi	$s4, $s4, 1
 	lb	$t0, 0($s0)			#load character
 	#if \n or null: goto progcess
-	lb	$t1, 0($t6)
     	beqz	$t0, progcess
     	lb	$t1, 0($t7)
     	beq	$t0, $t1, progcess
@@ -562,6 +560,57 @@ l_check:
             j	 l_loop
 	
 s_check:
+	#__init__
+	lb 	$t0, ($s0)
+	#First character could be '-'
+	bne	$t0, '-', pre_register
+	addi	$s0, $s0, 1
+	lb 	$t0, ($s0)
+	
+	pre_register:
+            #If find '(' then find the address register
+            beq	$t0, '(', register_find
+            #If not, it must be a number
+            blt $t0, '0', return_invalid
+            bgt $t0, '9', return_invalid
+            #If number, point to next character
+            addi $s0, $s0, 1
+            lb 	 $t0, 0($s0)
+            beqz $t0, return_invalid
+            j	 pre_register
+            
+         register_find:         
+            #$t1: address register
+            la	$t1, address
+
+            loop_findRegister:
+            	addi 	$s0, $s0, 1
+            	lb	$t0, 0($s0)
+            	#If find ')' then check the address register
+            	beq	$t0, ')', register_precheck
+            	beq	$t0, 0, return_invalid
+            	sb	$t0, 0($t1)
+            	addi	$t1, $t1, 1
+            	j	loop_findRegister
+        
+        register_precheck:
+            #After ')' must be \0 or \n
+            addi $s0, $s0, 1
+            lb	 $t0, 0($s0)
+            beqz $t0, register_check
+            lb	 $t1, 0($t7)
+            beq	 $t0, $t1, register_check
+            j	 return_invalid
+            
+	register_check:
+            #__init__
+	    la	 $s0, address
+	    j	 r_check
+            
+            
+            	
+            
+	
 
 valid_opr:
 	li 	$v0, 4
