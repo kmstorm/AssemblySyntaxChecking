@@ -85,7 +85,7 @@
     		"ldc1","rsx","2",
     		"lh","rsx","2",
     		"lhu","rsx","2",
-   	 	"ll","rsx","2",
+    		"ll","rsx","2",
     		"lui","rix","2",
     		"lw","rsx","2",
     		"lwc1","rsx","2",
@@ -162,7 +162,7 @@
     		"tlbp","xxx","2",
     		"tlbr","xxx","2",
     		"tlbwi","xxx","2",
-   		"tlbwr","xxx","2",
+    		"tlbwr","xxx","2",
     		"tlt","rrx","1",
     		"tlti","rri","1",
     		"tltiu","rri","1",
@@ -189,6 +189,7 @@
     	invalid:	.asciiz "invalid"
     	say_opcode:	.asciiz "Opcode "
     	say_operand:	.asciiz "Operand "
+    	say_cycle:	.asciiz "CPI: "
 .text
 
 read:
@@ -373,7 +374,7 @@ next_opcode:
 	addi 	$s1, $s1, 1
 	lb 	$t1, 0($s1)
 	bne 	$t1, $zero, next_opcode
-	addi 	$s1, $s1, 7
+	addi 	$s1, $s1, 7	#next_opcode
 	lb 	$t1, 0($s1)
 	beq 	$t1, $zero, return_invalid
 	la 	$s0, opcode
@@ -395,14 +396,14 @@ valid_opcode:
 #$s1	: Instruction Format
 opr1_type:
 	la 	$s0, opr1
-        addi 	$s1, $s1, 1
+        addi 	$s1, $s1, 1	#next_opr
         lb 	$t1, 0($s1)
         li 	$s3, 1
         jal 	type_check
         
 opr2_type:
 	la 	$s0, opr2
-        addi 	$s1, $s1, 1
+        addi 	$s1, $s1, 1	#next_opr
         lb 	$t1, 0($s1)
         li 	$s3, 2
         jal 	type_check
@@ -410,14 +411,20 @@ opr2_type:
 
 opr3_type:
 	la 	$s0, opr3
-        addi 	$s1, $s1, 1
+        addi 	$s1, $s1, 1	#next_opr
         lb 	$t1, 0($s1)
         li 	$s3, 3
         jal 	type_check
         nop
 
 clock_cycles:
-
+	li 	$v0, 4
+	la 	$a0, say_cycle
+	syscall
+	li 	$v0, 4
+	addi 	$a0, $s1, 2	#clock_cycles
+	syscall
+	
 exit:
 	li	$v0, 10
 	syscall
@@ -607,11 +614,6 @@ s_check:
 	    la	 $s0, address
 	    j	 r_check
             
-            
-            	
-            
-	
-
 valid_opr:
 	li 	$v0, 4
 	la 	$a0, valid
