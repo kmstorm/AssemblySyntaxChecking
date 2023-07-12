@@ -6,8 +6,8 @@
 
 .data
 	#Instruction, include opcode and maximum 3 operand
-	input: 	.space 100
-	opcode: .space 10
+	input: 	.space 	100
+	opcode: .space 	10
 	opr1:	.space	32
 	opr2:	.space	32
 	opr3:	.space	32
@@ -16,8 +16,7 @@
 	#r=register, i=immediate, f=float register, l=label, s=special address, x: nothing
 	type: .asciiz "x", "r", "i", "f", "l", "s"
     	register: .asciiz 
-    		"$zero", "$at", "$v0", "$v1", 
-    		"$a0", "$a1", "$a2", "$a3", 
+    		"$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", 
     		"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", 
     		"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", 
     		"$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
@@ -412,13 +411,12 @@ opr2_type:
         nop
 
 opr3_type:
-	la 	$s0, operand3
+	la 	$s0, opr3
         addi 	$s1, $s1, 1
         lb 	$t1, 0($s1)
         li 	$s3, 3
         jal 	type_check
         nop
-        j 	number_of_cycles
 
 clock_cycles:
 
@@ -440,7 +438,7 @@ type_check:
 	la 	$a0, mark
 	syscall
 	li 	$v0, 4
-	la 	$a0, opcode
+	addi	$a0, $s0, 0
 	syscall
 	li 	$v0, 4
 	la 	$a0, mark
@@ -560,7 +558,7 @@ l_check:
             #If valid, point to next character
             addi $s2, $s2, 1
             lb 	 $t0, 0($s2)
-            beqz $t0, valid_operand
+            beqz $t0, valid_opr
             j	 l_loop
 	
 s_check:
@@ -582,7 +580,7 @@ x_invalid:	#Openrand '...': invalid
 	la 	$a0, mark
 	syscall
 	li 	$v0, 4
-	la 	$a0, opcode
+	addi	$a0, $s0, 0
 	syscall
 	li 	$v0, 4
 	la 	$a0, mark
