@@ -6,13 +6,12 @@
 
 .data
 	#Instruction, include opcode and maximum 3 operand
-	address:.space	16
 	input: 	.space 	100
 	opcode: .space 	12
 	opr1:	.space	32
 	opr2:	.space	32
 	opr3:	.space	32
-	#address:.space	10
+	address:.space	16
 	#Instruction Pattern
 	#r=register, i=immediate, f=float register, l=label, s=special address, x: nothing
 	type: .asciiz "x", "r", "i", "f", "l", "s"
@@ -79,7 +78,7 @@
     		"j","lxx","2",
     		"jal","lxx","2",
     		"jalr","rrx","2",
-    		"jr","rrx","2",
+    		"jr","rxx","2",
     		"lb","rsx","2",
     		"lbu","rsx","2",
     		"ldc1","rsx","2",
@@ -212,10 +211,12 @@ read:
     	la	$t9, comma
     	
 opcode_pre:
-	#remove space or tab before opcode
+	#remove space, tab or comma before opcode
 	addi	$s0, $s0, 1
     	lb	$t0, 00($s0)			#load character
     	lb	$t1, 0($t8)
+	beq	$t0, $t1, opcode_pre
+	lb	$t1, 0($t9)
 	beq	$t0, $t1, opcode_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opcode_pre
@@ -230,8 +231,10 @@ opcode_find:
 	addi	$s0, $s0, 1
 	addi	$s1, $s1, 1
 	lb	$t0, 0($s0)			#load character
-	#if space or tab: goto operand
+	#if space or tab, comma: goto operand
 	lb	$t1, 0($t8)
+	beq	$t0, $t1, opr1_pre
+	lb	$t1, 0($t9)
 	beq	$t0, $t1, opr1_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr1_pre
@@ -242,14 +245,16 @@ opcode_find:
 	j	opcode_find
 	
 opr1_pre:
-	#remove all space or tab left between opcode and opr1
+	#remove all space, tab or comma left between opcode and opr1
     	addi	$s0, $s0, 1
     	lb	$t0, 0($s0)			#load character
     	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr1_pre
+	lb	$t1, 0($t9)
+	beq	$t0, $t1, opr1_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr1_pre
-	opr1_init:
+	#__init__
 	la	$s2, opr1
 	lb	$t0, 0($s0)			#load character
 	
@@ -260,11 +265,11 @@ opr1_find:
 	addi	$s0, $s0, 1
 	addi	$s2, $s2, 1
 	lb	$t0, 0($s0)			#load character
-	#if space or tab, or comma: goto operand2
+	#if space tab, or comma: goto operand2
 	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr2_pre
 	lb	$t1, 0($t9)
-	beq	$t0, $t1, opr2_comma
+	beq	$t0, $t1, opr2_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr2_pre
 	#if \n or null: goto progcess
@@ -273,24 +278,17 @@ opr1_find:
     	beq	$t0, $t1, progcess
 	j	opr1_find
 	
-opr2_comma:
-	addi	$t3, $zero, 1
-	
 opr2_pre:
-	#remove all space or tab (or only 1 comma) left between opr1 and opr2
+	#remove all space, tab or comma left between opr1 and opr2
     	addi	$s0, $s0, 1
     	lb	$t0, 0($s0)			#load character
     	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr2_pre
+	lb	$t1, 0($t9)
+	beq	$t0, $t1, opr2_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr2_pre
-	lb	$t1, 0($t9)
-	bne	$t0, $t1, opr2_init
-	seq	$t2, $t0, $t1
-	add	$t3, $t3, $t2		#only 1 comma is available between 2 opr
-	ble	$t3, 1, opr2_pre
-	opr2_init:
-	add	$t3, $zero, $zero
+	#__init__
 	la	$s3, opr2
 	lb	$t0, 0($s0)			#load character
 	
@@ -305,7 +303,7 @@ opr2_find:
 	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr3_pre
 	lb	$t1, 0($t9)
-	beq	$t0, $t1, opr3_comma
+	beq	$t0, $t1, opr3_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr3_pre
 	#if \n or null: goto progcess
@@ -314,23 +312,17 @@ opr2_find:
     	beq	$t0, $t1, progcess
 	j	opr2_find
 
-opr3_comma:
-	addi	$t3, $zero, 1
 opr3_pre:
-	#remove all space or tab left between opr2 and opr3
+	#remove all space, tab or comma left between opr2 and opr3
     	addi	$s0, $s0, 1
     	lb	$t0, 0($s0)			#load character
     	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr3_pre
+	lb	$t1, 0($t9)
+	beq	$t0, $t1, opr3_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr3_pre
-	lb	$t1, 0($t9)
-	bne	$t0, $t1, opr3_init
-	seq	$t2, $t0, $t1
-	add	$t3, $t3, $t2		#only 1 comma is available between 2 opr
-	ble	$t3, 1, opr3_pre
-	opr3_init:
-	add	$t3, $zero, $zero
+	#__init__
 	la	$s4, opr3
 	lb	$t0, 0($s0)			#load character
 	
@@ -389,9 +381,11 @@ opcode_check:
 
 next_opcode:
 	#Skip current opcode
+	beqz	$t1, skip_opr
 	addi 	$s1, $s1, 1
 	lb 	$t1, 0($s1)
-	bne 	$t1, $zero, next_opcode
+	j	next_opcode
+	skip_opr:
 	addi 	$s1, $s1, 7	#next_opcode
 	lb 	$t1, 0($s1)
 	beq 	$t1, $zero, return_invalid
@@ -440,7 +434,8 @@ clock_cycles:
 	la 	$a0, say_cycle
 	syscall
 	li 	$v0, 4
-	addi 	$a0, $s1, 2	#clock_cycles
+	addi	$s1, $s1, 5
+	sub 	$a0, $s1, $s3	#clock_cycles
 	syscall
 	
 exit:
@@ -533,29 +528,26 @@ rf_endcheck:
 	j 	rf_next
             
 i_check:
-	#__init__
-	addi 	$s2, $s0, 0
-        #Check first character, could be '-' or digit
-	lb 	$t0, 0($s2)
+        #Check first character, could be '-', '+' or digit
+	lb 	$t0, 0($s0)
 	bne 	$t0, '-', i_loop
+	bne	$t0, '+', i_loop
         #If '-', point to next character
-	addi 	$s2, $s2, 1
+	addi 	$s0, $s0, 1
         i_loop:
-            lb 	 $t0, 0($s2)
+            lb 	 $t0, 0($s0)
             blt  $t0, '0', return_invalid
             bgt  $t0, '9', return_invalid
             #If valid, point to next character
-            addi $s2, $s2, 1
-            #If reach the end of input operand, jump to check_end_r
-            lb	 $t0, 0($s2)
+            addi $s0, $s0, 1
+            lb	 $t0, 0($s0)
             beqz $t0, valid_opr
             j	 i_loop
             
 l_check:
 	#__init__
-	addi 	$s2, $s0, 0
-	lb 	$t0, 0($s2)
-	addi 	$s2, $s2, 1
+	lb 	$t0, 0($s0)
+	addi 	$s0, $s0, 1
         #First character must be letter
 	blt 	$t0, 'A', return_invalid
 	ble 	$t0, 'Z', l_loop
@@ -565,7 +557,7 @@ l_check:
         l_loop:
             #Check the rest of the characters
             #Label can only contains letters, numbers, and underscores
-            lb 	$t0, ($s2)
+            lb 	$t0, 0($s0)
             #underscores
             beq $t0, '_', l_next
             #number
@@ -579,18 +571,19 @@ l_check:
             
             l_next:
             #If valid, point to next character
-            addi $s2, $s2, 1
-            lb 	 $t0, 0($s2)
+            addi $s0, $s0, 1
+            lb 	 $t0, 0($s0)
             beqz $t0, valid_opr
             j	 l_loop
 	
 s_check:
 	#__init__
 	lb 	$t0, ($s0)
-	#First character could be '-'
+	#First character could be '-' or '+'
 	bne	$t0, '-', pre_register
+	bne	$t0, '+', pre_register
 	addi	$s0, $s0, 1
-	lb 	$t0, ($s0)
+	lb 	$t0, 0($s0)
 	
 	pre_register:
             #If find '(' then find the address register
