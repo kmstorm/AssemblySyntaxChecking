@@ -117,11 +117,11 @@
     		"mtc1","rfx","1",
     		"mthi","rxx","1",
     		"mtlo","rxx","1",
-    		"mul","rrr","1",
-    		"mul.d","fff","1",
-    		"mul.s","fff","1",
-    		"mult","rrx","1",
-    		"multu","rrx","1",
+    		"mul","rrr","3",
+    		"mul.d","fff","3",
+    		"mul.s","fff","3",
+    		"mult","rrx","3",
+    		"multu","rrx","3",
     		"neg.d","ffx","1",
     		"neg.s","ffx","1",
     		"nop","xxx","1",
@@ -144,10 +144,10 @@
     		"srav","rrx","1",
     		"srl","rrx","1",
     		"srlv","rrx","1",
-    		"sub","rrr","1",
-    		"sub.d","rrr","1",
-    		"sub.s","rrr","1",
-    		"subu","rrr","1",
+    		"sub","rrr","2",
+    		"sub.d","rrr","2",
+    		"sub.s","rrr","2",
+    		"subu","rrr","2",
     		"sw","rsx","2",
     		"swc1","rsx","2",
     		"swl","rsx","2",
@@ -189,10 +189,11 @@
     	invalid:	.asciiz "invalid"
     	say_opcode:	.asciiz "Opcode "
     	say_operand:	.asciiz "Operand "
-    	say_cycle:	.asciiz "CPI: "
+    	say_cycle:	.asciiz "Number of Clock Cycles: "
 .text
 
 read:
+	sub	$s1, $s2, $s3
 	#Prompt user to enter an instruction
     	li 	$v0, 4
     	la 	$a0, ask
@@ -248,7 +249,7 @@ opr1_pre:
 	beq	$t0, $t1, opr1_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr1_pre
-	#__init__
+	opr1_init:
 	la	$s2, opr1
 	lb	$t0, 0($s0)			#load character
 	
@@ -263,7 +264,7 @@ opr1_find:
 	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr2_pre
 	lb	$t1, 0($t9)
-	beq	$t0, $t1, opr2_pre
+	beq	$t0, $t1, opr2_comma
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr2_pre
 	#if \n or null: goto progcess
@@ -272,15 +273,24 @@ opr1_find:
     	beq	$t0, $t1, progcess
 	j	opr1_find
 	
+opr2_comma:
+	addi	$t3, $zero, 1
+	
 opr2_pre:
-	#remove all space or tab left between opr1 and opr2
+	#remove all space or tab (or only 1 comma) left between opr1 and opr2
     	addi	$s0, $s0, 1
     	lb	$t0, 0($s0)			#load character
     	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr2_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr2_pre
-	#__init__
+	lb	$t1, 0($t9)
+	bne	$t0, $t1, opr2_init
+	seq	$t2, $t0, $t1
+	add	$t3, $t3, $t2		#only 1 comma is available between 2 opr
+	ble	$t3, 1, opr2_pre
+	opr2_init:
+	add	$t3, $zero, $zero
 	la	$s3, opr2
 	lb	$t0, 0($s0)			#load character
 	
@@ -295,7 +305,7 @@ opr2_find:
 	lb	$t1, 0($t8)
 	beq	$t0, $t1, opr3_pre
 	lb	$t1, 0($t9)
-	beq	$t0, $t1, opr3_pre
+	beq	$t0, $t1, opr3_comma
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr3_pre
 	#if \n or null: goto progcess
@@ -304,6 +314,8 @@ opr2_find:
     	beq	$t0, $t1, progcess
 	j	opr2_find
 
+opr3_comma:
+	addi	$t3, $zero, 1
 opr3_pre:
 	#remove all space or tab left between opr2 and opr3
     	addi	$s0, $s0, 1
@@ -312,7 +324,13 @@ opr3_pre:
 	beq	$t0, $t1, opr3_pre
 	lb	$t1, 0($t6)
 	beq	$t0, $t1, opr3_pre
-	#__init__
+	lb	$t1, 0($t9)
+	bne	$t0, $t1, opr3_init
+	seq	$t2, $t0, $t1
+	add	$t3, $t3, $t2		#only 1 comma is available between 2 opr
+	ble	$t3, 1, opr3_pre
+	opr3_init:
+	add	$t3, $zero, $zero
 	la	$s4, opr3
 	lb	$t0, 0($s0)			#load character
 	
